@@ -2,7 +2,14 @@
 
 """
 Pydantic schemas for request/response validation in the Shop module.
-Provides separate Create, Update, and Response models for all entities.
+- Categories
+- Materials
+- Tags
+- Items
+- Item Images (with upload support)
+- Wishlists
+- Bulk operations
+- Utility responses (likes, etc.)
 """
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -12,12 +19,12 @@ from uuid import UUID
 from decimal import Decimal
 
 
-# ============================================================================
-# Category Schemas
-# ============================================================================
+# =============================================================================
+# CATEGORY SCHEMAS
+# =============================================================================
 
 class CategoryBase(BaseModel):
-    """Base category schema with common fields."""
+    """Shared fields for Category (used by Create/Update)."""
     name: str = Field(..., min_length=1, max_length=255, examples=["Living Room"])
     slug: str = Field(..., min_length=1, max_length=255, examples=["living-room"])
     description: Optional[str] = Field(None, examples=["Furniture for your living space"])
@@ -29,27 +36,28 @@ class CategoryCreate(CategoryBase):
 
 
 class CategoryUpdate(BaseModel):
-    """Schema for updating a category (all fields optional)."""
+    """Schema for updating category (all fields optional)."""
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     slug: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
 
 
 class CategoryResponse(CategoryBase):
-    """Schema for category responses."""
+    """Schema for category responses (includes ID + timestamps)."""
     id: UUID
     created_at: datetime
     updated_at: datetime
-    
+
+    # Config allows ORM objects (SQLAlchemy) to be parsed directly
     model_config = ConfigDict(from_attributes=True)
 
 
-# ============================================================================
-# Material Schemas
-# ============================================================================
+# =============================================================================
+# MATERIAL SCHEMAS
+# =============================================================================
 
 class MaterialBase(BaseModel):
-    """Base material schema with common fields."""
+    """Shared fields for Material."""
     name: str = Field(..., min_length=1, max_length=255, examples=["Oak Wood"])
     description: Optional[str] = Field(None, examples=["High-quality solid oak"])
 
@@ -70,13 +78,13 @@ class MaterialResponse(MaterialBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
-# ============================================================================
-# Tag Schemas
-# ============================================================================
+# =============================================================================
+# TAG SCHEMAS
+# =============================================================================
 
 class TagBase(BaseModel):
     """Base tag schema."""
@@ -84,56 +92,59 @@ class TagBase(BaseModel):
 
 
 class TagCreate(TagBase):
-    """Schema for creating a new tag."""
+    """Schema for creating a tag."""
     pass
 
 
 class TagUpdate(BaseModel):
-    """Schema for updating a tag."""
+    """Schema for updating tag (name optional)."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
 
 
 class TagResponse(TagBase):
-    """Schema for tag responses."""
+    """Schema for tag response."""
     id: UUID
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class TagAssignment(BaseModel):
-    """Schema for assigning tags to an item."""
+    """Schema for assigning multiple tags to an item."""
     tag_ids: List[UUID] = Field(..., examples=[["uuid1", "uuid2"]])
 
 
-# ============================================================================
-# Item Image Schemas
-# ============================================================================
+# =============================================================================
+# ITEM IMAGE SCHEMAS
+# =============================================================================
 
 class ItemImageResponse(BaseModel):
-    """Schema for item image responses."""
+    """Schema for item image response."""
     id: UUID
     item_id: UUID
     storage_path: str
     url: str
     is_primary: bool
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class ItemImageUpdate(BaseModel):
-    """Schema for updating item image metadata."""
+    """
+    Schema for updating image metadata.
+    Example: Marking an image as primary.
+    """
     is_primary: Optional[bool] = None
 
 
-# ============================================================================
-# Item Schemas
-# ============================================================================
+# =============================================================================
+# ITEM SCHEMAS
+# =============================================================================
 
 class ItemBase(BaseModel):
-    """Base item schema with common fields."""
+    """Shared fields for Item (used by Create/Update)."""
     name: str = Field(..., min_length=1, max_length=255, examples=["Modern Sofa"])
     sku: str = Field(..., min_length=1, max_length=100, examples=["SOFA-001"])
     description: Optional[str] = Field(None, examples=["A comfortable 3-seater sofa"])
@@ -164,51 +175,54 @@ class ItemUpdate(BaseModel):
 
 
 class ItemResponse(ItemBase):
-    """Schema for item responses (basic info)."""
+    """Schema for basic item response."""
     id: UUID
     category_id: Optional[UUID]
     material_id: Optional[UUID]
     likes: int
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class ItemDetailResponse(ItemResponse):
-    """Schema for detailed item responses including related entities."""
+    """
+    Schema for detailed item response.
+    Includes related objects: category, material, tags, and images.
+    """
     category: Optional[CategoryResponse] = None
     material: Optional[MaterialResponse] = None
     images: List[ItemImageResponse] = []
     tags: List[TagResponse] = []
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class ItemListResponse(BaseModel):
-    """Schema for paginated item list responses."""
+    """Schema for paginated item list response."""
     items: List[ItemResponse]
     meta: dict = Field(..., examples=[{"total": 100, "limit": 12, "offset": 0}])
 
 
-# ============================================================================
-# Wishlist Schemas
-# ============================================================================
+# =============================================================================
+# WISHLIST SCHEMAS
+# =============================================================================
 
 class WishlistResponse(BaseModel):
-    """Schema for wishlist responses."""
+    """Schema for wishlist response."""
     id: UUID
     user_id: UUID
     item_id: UUID
     created_at: datetime
-    item: ItemResponse
-    
+    item: ItemResponse  # embed item info directly
+
     model_config = ConfigDict(from_attributes=True)
 
 
-# ============================================================================
-# Bulk Operation Schemas
-# ============================================================================
+# =============================================================================
+# BULK OPERATION SCHEMAS
+# =============================================================================
 
 class BulkDeleteRequest(BaseModel):
     """Schema for bulk delete operations."""
@@ -221,11 +235,11 @@ class BulkUpdateRequest(BaseModel):
     patch: dict = Field(..., examples=[{"is_active": False}])
 
 
-# ============================================================================
-# Utility Schemas
-# ============================================================================
+# =============================================================================
+# UTILITY SCHEMAS
+# =============================================================================
 
 class LikeResponse(BaseModel):
-    """Schema for like operation responses."""
+    """Schema for like response."""
     item_id: UUID
     likes: int

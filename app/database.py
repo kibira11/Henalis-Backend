@@ -5,8 +5,8 @@ Uses SQLAlchemy with async engine and session factory.
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from typing import AsyncGenerator
 from app.config import settings
-
 
 # ----------------------------------------------------------------------------
 # Database Engine
@@ -15,14 +15,13 @@ from app.config import settings
 # Pool settings help manage concurrent connections efficiently.
 # ----------------------------------------------------------------------------
 engine = create_async_engine(
-    settings.database_url,       # Loaded from .env (Neon/Postgres)
+    settings.database_url,       # Loaded from .env (Neon/Postgres connection string)
     echo=False,                  # Set True for SQL query logs in dev
     future=True,                 # Enable SQLAlchemy 2.0 style
-    pool_pre_ping=True,          # Check connection health
+    pool_pre_ping=True,          # Check connection health before using
     pool_size=10,                # Default pool size
     max_overflow=20,             # Extra connections if pool is full
 )
-
 
 # ----------------------------------------------------------------------------
 # Session Factory
@@ -37,17 +36,15 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
 )
 
-
 # ----------------------------------------------------------------------------
 # Base Class for ORM Models
 # ----------------------------------------------------------------------------
 Base = declarative_base()
 
-
 # ----------------------------------------------------------------------------
 # Dependency: Get DB Session
 # ----------------------------------------------------------------------------
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide an async database session.
     This function is used with FastAPI Depends in routes.
