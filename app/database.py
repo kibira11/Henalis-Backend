@@ -1,46 +1,57 @@
 """
-Database configuration and Session Management.
-Provides async AQLAlchemy engine and session factory
+Database configuration and session management for Henalis backend.
+Uses SQLAlchemy with async engine and session factory.
 """
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from app.config import settings
 
-# create async engine
+
+# ----------------------------------------------------------------------------
+# Database Engine
+# ----------------------------------------------------------------------------
+# We use asyncpg with SQLAlchemy for async database operations.
+# Pool settings help manage concurrent connections efficiently.
+# ----------------------------------------------------------------------------
 engine = create_async_engine(
-    settings.database_url,
-    echo = False, # Set to True for SQL query logging during development
-    future = True,
-    pool_pre_ping = True, # Verify connections before using them
-    pool_size = 10, # Connection pool size
-    max_overflow = 20, # Max overflow connections
+    settings.database_url,       # Loaded from .env (Neon/Postgres)
+    echo=False,                  # Set True for SQL query logs in dev
+    future=True,                 # Enable SQLAlchemy 2.0 style
+    pool_pre_ping=True,          # Check connection health
+    pool_size=10,                # Default pool size
+    max_overflow=20,             # Extra connections if pool is full
+)
 
-    )
 
-# create async session factory
+# ----------------------------------------------------------------------------
+# Session Factory
+# ----------------------------------------------------------------------------
+# AsyncSessionLocal is used in dependency injection (FastAPI routes).
+# ----------------------------------------------------------------------------
 AsyncSessionLocal = async_sessionmaker(
-    engine,
+    bind=engine,
     class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit = False,
-    autoflush = False,
-    )
+    expire_on_commit=False,      # Don’t expire objects after commit
+    autocommit=False,
+    autoflush=False,
+)
 
-# Base class for declarative models
+
+# ----------------------------------------------------------------------------
+# Base Class for ORM Models
+# ----------------------------------------------------------------------------
 Base = declarative_base()
 
+
+# ----------------------------------------------------------------------------
+# Dependency: Get DB Session
+# ----------------------------------------------------------------------------
 async def get_db() -> AsyncSession:
     """
-    Dependency that provides an async database session.
-    Yields a session and ensures it's closed sfter use.
+    Provide an async database session.
+    This function is used with FastAPI Depends in routes.
+    Ensures session is closed after request is finished.
     """
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-
-
-
-
+        yield session

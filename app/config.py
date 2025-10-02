@@ -1,37 +1,32 @@
-# app/config.py
-
+﻿# app/config.py
 """
-configuration module for Henalis furniture e-commerce backend.
+Configuration module for Henalis furniture e-commerce backend.
 Loads environment variables and provides configuration settings.
 """
 
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import ClassVar
 
 
 class Settings(BaseSettings):
-    """ Application settings loaded from environment variables.
-    """
+    """Application settings loaded from environment variables."""
 
-    # Database
-    database_url: str
-
-    # Supabase
-    supabase_role_claim: str = "role"
-    admin_role_value: str = "admin"
-    jwt_user_id_claim = str = "sub"
+    # Database connection string (Neon/Postgres)
+    database_url: str  # required in .env
 
     # API Configuration
-    default_limit: int = 12
+    default_limit: int = 12  # default page size for list endpoints
 
     # CORS (optional, configure as needed)
     cors_origins: list[str] = ["*"]
+
+    # ✅ Constant (not an env var): claim field in JWT for user ID
+    jwt_user_id_claim: ClassVar[str] = "sub"
 
     class Config:
         env_file = ".env"
         case_sensitive = False
 
 
-# gLOBAL SETTINGS INSTANCE
-SETTINGS = Settings()
-
+# Global settings instance (importable anywhere)
+settings = Settings()
