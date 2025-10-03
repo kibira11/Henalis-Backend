@@ -1,7 +1,7 @@
 ﻿# app/main.py
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from app.routers import shop, contact, blog  # import your routers
+from app.routers import shop, contact, blog, subscriber  # ✅ include subscriber
 
 app = FastAPI(
     title="Furniture E-commerce Backend",
@@ -9,8 +9,7 @@ app = FastAPI(
     description="Backend API for the Henalis Furniture E-commerce system"
 )
 
-# ✅ Mount static folder so uploaded files are accessible
-# Files saved to app/static/uploads/... will be served at /static/uploads/...
+# ✅ Serve static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Root route
@@ -22,3 +21,4 @@ def root():
 app.include_router(shop.router)
 app.include_router(contact.router)
 app.include_router(blog.router)
+app.include_router(subscriber.router)  # ✅ added
